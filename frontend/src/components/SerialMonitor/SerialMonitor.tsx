@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSerialStore, type SerialEntry } from '../../store/serialStore';
 import { useDeviceStore } from '../../store/deviceStore';
-import { decodeText, encodeText } from '../../services/serialBridge';
+import { encodeText } from '../../services/serialBridge';
 import styles from './SerialMonitor.module.css';
 
 function formatTs(ms: number): string {
@@ -14,15 +14,6 @@ export function SerialMonitor() {
     const { serialBridge, status } = useDeviceStore();
     const bottomRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState('');
-
-    // Wire incoming data to serial store
-    useEffect(() => {
-        const bridge = serialBridge;
-        if (!bridge) return;
-        const cb = (data: Uint8Array) => append(decodeText(data), 'stdout');
-        bridge.onData(cb);
-        return () => bridge.offData(cb);
-    }, [serialBridge, append]);
 
     // Auto-scroll
     useEffect(() => {

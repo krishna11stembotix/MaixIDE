@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import websocketPlugin from '@fastify/websocket';
@@ -12,7 +12,7 @@ server.register(cors, {
 });
 
 server.register(jwt, {
-    secret: process.env.JWT_SECRET ?? 'maixide-dev-secret-change-in-prod',
+    secret: process.env['JWT_SECRET'] ?? 'maixide-dev-secret-change-in-prod',
 });
 
 server.register(websocketPlugin);
@@ -23,15 +23,15 @@ server.register(websocketPlugin);
 server.get('/health', async () => ({ status: 'ok', service: 'MaixIDE Backend' }));
 
 // Auth (stub)
-server.post('/auth/register', async (req, reply) => {
-    const { email, password } = req.body as { email: string; password: string };
+server.post('/auth/register', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { email } = req.body as { email: string; password: string };
     // TODO: Store user in DB
     const token = server.jwt.sign({ email }, { expiresIn: '7d' });
     return reply.send({ token });
 });
 
-server.post('/auth/login', async (req, reply) => {
-    const { email, password } = req.body as { email: string; password: string };
+server.post('/auth/login', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { email } = req.body as { email: string; password: string };
     // TODO: Verify against DB
     const token = server.jwt.sign({ email }, { expiresIn: '7d' });
     return reply.send({ token });
@@ -40,11 +40,11 @@ server.post('/auth/login', async (req, reply) => {
 // Projects (stub – would use a DB in production)
 const projects: Record<string, unknown>[] = [];
 
-server.get('/projects', { preHandler: [server.authenticate] }, async (req) => {
+server.get('/projects', { preHandler: [server.authenticate] }, async (_req: FastifyRequest) => {
     return projects;
 });
 
-server.post('/projects', { preHandler: [server.authenticate] }, async (req, reply) => {
+server.post('/projects', { preHandler: [server.authenticate] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const project = { id: String(Date.now()), ...(req.body as object) };
     projects.push(project);
     return reply.code(201).send(project);
@@ -52,8 +52,8 @@ server.post('/projects', { preHandler: [server.authenticate] }, async (req, repl
 
 // ─── WebSocket relay (for remote device management) ───────────────────────────
 server.register(async function (app) {
-    app.get('/device/relay', { websocket: true }, (socket, req) => {
-        socket.on('message', (message) => {
+    app.get('/device/relay', { websocket: true }, (socket, _req) => {
+        socket.on('message', (message: Buffer) => {
             // Relay messages to all other connected clients
             server.log.info(`Relay message: ${message.toString()}`);
             // In production, route to the correct device agent by device ID
@@ -71,7 +71,7 @@ declare module 'fastify' {
     }
 }
 
-server.decorate('authenticate', async (req: Parameters<typeof server.authenticate>[0], reply: Parameters<typeof server.authenticate>[1]) => {
+server.decorate('authenticate', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
         await req.jwtVerify();
     } catch (err) {
@@ -80,7 +80,7 @@ server.decorate('authenticate', async (req: Parameters<typeof server.authenticat
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env['PORT'] ?? 3001);
 
 server.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
     if (err) { server.log.error(err); process.exit(1); }

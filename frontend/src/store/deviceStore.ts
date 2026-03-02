@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { SerialBridge, isElectron, hasWebSerial, decodeText } from '../services/serialBridge';
-import { WebSerialService } from '../services/webSerialService';
+import { SerialBridge, isElectron, hasWebSerial } from '../services/serialBridge';
+import { WebSerialService, cleanDeviceOutput } from '../services/webSerialService';
 import { ElectronSerialService } from '../services/electronSerialService';
 import { useSerialStore } from './serialStore';
 
@@ -52,9 +52,8 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
             const { append } = useSerialStore.getState();
             bridge.onData((data: Uint8Array) => {
                 const raw = new TextDecoder().decode(data);
-                // Strip ANSI escape codes but keep all printable chars
-                const text = raw.replace(/\x1B\[[0-9;]*[mGKHF]/g, '');
-                if (text.length > 0) append(text, 'stdout');
+                const text = cleanDeviceOutput(raw);
+                if (text.trim().length > 0) append(text, 'stdout');
             });
 
             set({ status: 'connected', serialBridge: bridge });

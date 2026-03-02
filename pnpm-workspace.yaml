@@ -4,4 +4,6 @@ packages:
   - backend
 
 onlyBuiltDependencies:
+  - '@serialport/bindings-cpp'
+  - electron
   - esbuild
