@@ -1,0 +1,218 @@
+/* ── App Layout ─────────────────────────────────────────────── */
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background: var(--color-bg-base);
+}
+
+.appBody {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    /* critical: allows flex children to shrink below content size */
+    overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-surface);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.sidebarNav {
+    display: flex;
+    flex-direction: row;
+    background: var(--color-bg-base);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.sidebarNavItem {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-2) 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    user-select: none;
+}
+
+.sidebarNavItemActive {
+    color: var(--color-brand-primary);
+    border-bottom-color: var(--color-brand-primary);
+}
+
+.sidebarNavItem:not(.sidebarNavItemActive):hover {
+    color: var(--color-text-secondary);
+}
+
+.sidebarPanel {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Main Content ───────────────────────────────────────────── */
+.main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ── Editor area ────────────────────────────────────────────── */
+.editorArea {
+    flex: 1;
+    min-height: 0;
+    /* critical for Monaco to size correctly */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── File tabs row ──────────────────────────────────────────── */
+.fileTabs {
+    display: flex;
+    flex-direction: row;
+    /* must be row — fixes vertical stacking bug */
+    align-items: stretch;
+    background: var(--color-bg-surface);
+    border-bottom: 1px solid var(--color-border);
+    overflow-x: auto;
+    flex-shrink: 0;
+    height: 34px;
+}
+
+.fileTabs::-webkit-scrollbar {
+    height: 0;
+}
+
+.fileTab {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-3);
+    height: 100%;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-right: 1px solid var(--color-border);
+    white-space: nowrap;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.fileTab:hover {
+    background: var(--color-bg-hover);
+}
+
+.fileTabActive {
+    color: var(--color-text-primary);
+    background: var(--color-bg-base);
+    border-bottom: 2px solid var(--color-brand-primary);
+}
+
+.fileTabClose {
+    font-size: 10px;
+    opacity: 0.5;
+    padding: 2px 3px;
+    border-radius: 2px;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.fileTabClose:hover {
+    opacity: 1;
+    background: var(--color-bg-hover);
+}
+
+.fileTabDirty {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-brand-primary);
+    flex-shrink: 0;
+}
+
+/* ── Bottom panel ───────────────────────────────────────────── */
+.bottomPanel {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg-panel);
+    flex-shrink: 0;
+    min-height: 80px;
+    max-height: 60vh;
+}
+
+.bottomPanelTabs {
+    display: flex;
+    flex-direction: row;
+    /* must be row */
+    align-items: center;
+    gap: 0;
+    padding: 0 var(--sp-3);
+    background: var(--color-bg-raised);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+    height: 32px;
+}
+
+.bottomPanelTab {
+    padding: 0 var(--sp-3);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.bottomPanelTabActive {
+    color: var(--color-brand-primary);
+    border-bottom-color: var(--color-brand-primary);
+}
+
+.bottomPanelTab:not(.bottomPanelTabActive):hover {
+    color: var(--color-text-secondary);
+}
+
+.bottomPanelContent {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}

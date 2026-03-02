@@ -1,0 +1,66 @@
+/* ── File Explorer ───────────────────────────────────────────── */
+.explorer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.explorerBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--sp-1) 0;
+}
+
+.explorerItem {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 5px var(--sp-3);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+
+.explorerItem:hover {
+    background: var(--color-bg-hover);
+}
+
+.explorerItemActive {
+    background: var(--color-brand-glow);
+    color: var(--color-text-primary);
+    border-right: 2px solid var(--color-brand-primary);
+}
+
+.explorerItemIcon {
+    font-size: 13px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+.explorerItemName {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.explorerItemDirty {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-brand-primary);
+    flex-shrink: 0;
+}
+
+.explorerEmpty {
+    padding: var(--sp-4) var(--sp-3);
+    font-size: 11px;
+    color: var(--color-text-muted);
+    text-align: center;
+    line-height: 1.6;
+}

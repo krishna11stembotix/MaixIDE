@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+implementation_plan.md
+frontend/dist/
+desktop/dist/
+desktop/out/
+backend/dist/

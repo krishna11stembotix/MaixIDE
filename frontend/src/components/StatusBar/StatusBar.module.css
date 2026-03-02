@@ -1,0 +1,40 @@
+/* ── Status Bar ─────────────────────────────────────────────── */
+.statusBar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-3);
+    height: var(--statusbar-height);
+    padding: 0 var(--sp-4);
+    background: #0a0c10;
+    border-top: 1px solid var(--color-border);
+    font-size: 11px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.statusBarItem {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+}
+
+.statusBarSep {
+    color: var(--color-border);
+}
+
+.statusBarConnected {
+    color: var(--color-success);
+}
+
+.statusBarError {
+    color: var(--color-error);
+}
+
+.statusBarRight {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}

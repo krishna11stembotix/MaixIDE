@@ -1,0 +1,19 @@
+{
+  "name": "maixide",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified IDE platform for Maix hardware boards",
+  "scripts": {
+    "dev:web": "pnpm --filter frontend dev",
+    "dev:desktop": "pnpm --filter desktop dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "build:web": "pnpm --filter frontend build",
+    "build:desktop": "pnpm --filter desktop build",
+    "build:backend": "pnpm --filter backend build",
+    "test": "pnpm --filter frontend test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

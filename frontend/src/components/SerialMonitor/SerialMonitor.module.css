@@ -1,0 +1,115 @@
+/* ── Serial Monitor ────────────────────────────────────────── */
+.monitor {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.monitorToolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-raised);
+    flex-shrink: 0;
+}
+
+.monitorToolbarLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    flex: 1;
+}
+
+.monitorToolbarRight {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.monitorTitle {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.monitorBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--sp-2) var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.monitorEntry {
+    display: flex;
+    flex-direction: row;
+    gap: var(--sp-3);
+    padding: 1px 0;
+}
+
+.monitorTs {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    font-size: 10px;
+    padding-top: 2px;
+    width: 70px;
+}
+
+.monitorText {
+    word-break: break-all;
+}
+
+.monitorTextStdout {
+    color: var(--color-text-primary);
+}
+
+.monitorTextStderr {
+    color: var(--color-error);
+}
+
+.monitorTextSystem {
+    color: var(--color-brand-primary);
+    font-style: italic;
+}
+
+.monitorEmpty {
+    padding: var(--sp-6);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+.monitorInputRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg-raised);
+    flex-shrink: 0;
+}
+
+.monitorInput {
+    flex: 1;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: var(--sp-1) var(--sp-2);
+    outline: none;
+}
+
+.monitorInput:focus {
+    border-color: var(--color-brand-primary);
+}

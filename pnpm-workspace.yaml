@@ -1,0 +1,7 @@
+packages:
+  - frontend
+  - desktop
+  - backend
+
+onlyBuiltDependencies:
+  - esbuild
