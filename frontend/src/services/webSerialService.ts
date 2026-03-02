@@ -67,7 +67,7 @@ export class WebSerialService implements SerialBridge {
     }
 
     /**
-     * Upload and run Python script via MicroPython REPL (line-by-line).
+     * Upload and run Python script via MicroPython REPL paste mode.
      */
     async uploadScript(code: string): Promise<void> {
         const enc = new TextEncoder();
@@ -78,16 +78,14 @@ export class WebSerialService implements SerialBridge {
             await sleep(500);
         }
 
-        const lines = code.split('\n');
+        // Enter paste mode, send complete script, then execute with CTRL+D.
+        await this.write(enc.encode('\x05')); // CTRL+E
+        await sleep(120);
 
-        for (const line of lines) {
-            const trimmed = line.trimEnd();
+        await this.write(enc.encode(`${code.replace(/\r\n/g, '\n')}\n`));
+        await sleep(120);
 
-            if (trimmed.startsWith('#!') || trimmed.startsWith('# -*- coding')) continue;
-
-            await this.write(enc.encode(trimmed + '\r\n'));
-            await sleep(100);
-        }
+        await this.write(enc.encode('\x04')); // CTRL+D
 
         console.log('[WebSerial] Script uploaded');
     }
