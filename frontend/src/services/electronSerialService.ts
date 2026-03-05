@@ -3,7 +3,7 @@
 // This is a thin adapter; real serial work happens in the Electron main process.
 
 import { SerialBridge, SerialDataCallback, PortInfo } from './serialBridge';
-
+import { LineBuffer } from './webSerialService';
 // Shape exposed by Electron's contextBridge preset
 interface ElectronBridge {
     serial: {
@@ -23,7 +23,7 @@ function bridge(): ElectronBridge {
 export class ElectronSerialService implements SerialBridge {
     private callbacks: Set<SerialDataCallback> = new Set();
     private _connected = false;
-
+    private lineBuffer = new LineBuffer();
     get isConnected(): boolean {
         return this._connected;
     }
@@ -37,8 +37,13 @@ export class ElectronSerialService implements SerialBridge {
         this._connected = true;
         // Wire up data from main process to our callbacks
         bridge().serial.onData((raw: number[]) => {
-            const data = new Uint8Array(raw);
-            this.callbacks.forEach(cb => cb(data));
+            const text = new TextDecoder().decode(new Uint8Array(raw));
+            const lines = this.lineBuffer.push(text);
+
+            if (lines.length > 0) {
+                const encoded = new TextEncoder().encode(lines.join('\n') + '\n');
+                this.callbacks.forEach(cb => cb(encoded));
+            }
         });
     }
 
@@ -55,45 +60,37 @@ export class ElectronSerialService implements SerialBridge {
         const enc = new TextEncoder();
         const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-        console.log('[ElectronSerial] === Starting upload ===');
-
-        // Interrupt any running script
+        // Step 1: Interrupt any running script
         await this.write(new Uint8Array([0x03]));
-        await sleep(300);
+        await sleep(150);
         await this.write(new Uint8Array([0x03]));
-        await sleep(500);
+        await sleep(200);
 
-        console.log('[ElectronSerial] Sending script lines');
+        // Step 2: Enter Raw REPL (CTRL+A)
+        await this.write(new Uint8Array([0x01]));
+        await sleep(100);
 
-        const lines = code.split('\n').map(l => l.trimEnd());
-        let prevEndsBlock = false;
+        // Ensure script ends with newline
+        if (!code.endsWith('\n')) code += '\n';
 
-        for (const line of lines) {
-            const trimmed = line.trim();
-
-            if (trimmed === '' || trimmed.startsWith('#')) continue;
-
-            const isIndented = line.length > 0 && (line[0] === ' ' || line[0] === '\t');
-
-            if (prevEndsBlock && !isIndented) {
-                await this.write(enc.encode('\r\n'));
-                await sleep(100);
-            }
-
-            await this.write(enc.encode(line + '\r\n'));
-            await sleep(80);
-
-            prevEndsBlock = isIndented || trimmed.endsWith(':');
+        // Step 3: Send full script in 256-byte chunks
+        const CHUNK = 256;
+        const encoded = enc.encode(code);
+        for (let off = 0; off < encoded.length; off += CHUNK) {
+            await this.write(encoded.slice(off, off + CHUNK));
+            if (off + CHUNK < encoded.length) await sleep(20);
         }
+        await sleep(50);
 
-        if (prevEndsBlock) {
-            await this.write(enc.encode('\r\n'));
-            await sleep(100);
-        }
+        // Step 4: Execute (CTRL+D)
+        await this.write(new Uint8Array([0x04]));
+        await sleep(100);
 
-        await sleep(2000);
+        // Step 5: Exit Raw REPL back to friendly REPL (CTRL+B)
+        await this.write(new Uint8Array([0x02]));
+        await sleep(50);
 
-        console.log('[ElectronSerial] === Upload complete ===');
+        console.log('[ElectronSerial] === Raw REPL upload complete ===');
     }
 
     onData(cb: SerialDataCallback): void {

@@ -18,6 +18,7 @@ export interface SerialBridge {
 
     /** Open a connection to the given port at given baud rate. */
     connect(port: string, baud: number): Promise<void>;
+    
 
     /** Close the current connection. */
     disconnect(): Promise<void>;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { SerialBridge, isElectron, hasWebSerial } from '../services/serialBridge';
-import { WebSerialService, cleanDeviceOutput } from '../services/webSerialService';
+import { WebSerialService, LineBuffer } from '../services/webSerialService';
 import { ElectronSerialService } from '../services/electronSerialService';
 import { useSerialStore } from './serialStore';
 
@@ -47,13 +47,18 @@ export const useDeviceStore = create<DeviceState>((set, get) => ({
             const bridge = makeBridge();
             await bridge.connect(get().portPath, get().baudRate);
 
-            // ── Wire incoming serial bytes directly into the serial store ──────
-            // Show ALL output from the device — no filtering.
+            // ── Wire incoming serial bytes into the serial store ───────────────
+            // LineBuffer accumulates fragments, splits on \n, and filters
+            // noise line-by-line. Works for both Electron (raw bytes) and
+            // WebSerial (already-clean lines pass through unchanged).
             const { append } = useSerialStore.getState();
+            const lineBuf = new LineBuffer();
             bridge.onData((data: Uint8Array) => {
-                const raw = new TextDecoder().decode(data);
-                const text = cleanDeviceOutput(raw);
-                if (text.trim().length > 0) append(text, 'stdout');
+                const chunk = new TextDecoder().decode(data);
+                const lines = lineBuf.push(chunk);
+                if (lines.length > 0) {
+                    append(lines.join('\n'), 'stdout');
+                }
             });
 
             set({ status: 'connected', serialBridge: bridge });

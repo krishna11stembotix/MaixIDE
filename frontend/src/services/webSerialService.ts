@@ -6,14 +6,106 @@ import type { SerialBridge, SerialDataCallback, PortInfo } from './serialBridge'
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 /**
- * Strip ANSI escape sequences and raw REPL protocol bytes from device output
- * so only printable text reaches the Serial Monitor.
+ * Returns true if this line is boot/REPL noise and should be suppressed.
+ * Runs on a single complete line, so patterns match reliably even when
+ * the device sends data in tiny fragments.
+ */
+function shouldDropLine(line: string): boolean {
+    const t = line.trim();
+    if (t === '') return true;
+    if (t === 'OK') return true;
+    if (t === '>') return true;
+    if (/^>>>\s*$/.test(t)) return true;
+    if (t.startsWith('[MAIXPY]') || t.startsWith('[MaixPy]')) return true;
+    if (t.startsWith('MicroPython')) return true;
+    if (t.startsWith('raw REPL')) return true;
+    if (t.startsWith('Type "help()"')) return true;
+    if (t.startsWith('Traceback (most recent call last)')) return true;
+    if (/^\s*File ".+", line \d+/.test(t)) return true;
+    if (t.startsWith('OSError:')) return true;
+    if (t.startsWith('MemoryError:')) return true;
+    if (t.startsWith('RuntimeError:')) return true;
+    if (t.startsWith('ImportError:')) return true;
+    if (t.startsWith('AttributeError:')) return true;
+    // Bare firmware version strings like "6.2-89-gd8901fd22-dirty on 2026-..."
+    if (/^\d+\.\d+-\d+-g[0-9a-f]{7}/.test(t)) return true;
+    return false;
+}
+
+/**
+ * Strip Raw REPL protocol tokens that may be prepended to real output.
+ * e.g. ">OKHello world" → "Hello world"
+ */
+function stripReplPrefixes(line: string): string {
+    // Repeatedly strip leading >, OK, >>> tokens until none remain
+    let prev = '';
+    let s = line;
+    while (s !== prev) {
+        prev = s;
+        s = s
+            .replace(/^>+/, '')           // leading > or >>>
+            .replace(/^OK/, '')            // Raw REPL OK response
+            .replace(/^\s+/, '');          // any whitespace left over
+    }
+    return s;
+}
+
+/**
+ * Strip ANSI escape codes and control characters from a single chunk.
+ * Full line-level filtering is handled by LineBuffer / shouldDropLine.
+ */
+export function cleanAnsi(raw: string): string {
+    return raw
+        .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')   // CSI sequences
+        .replace(/\x1B[A-Za-z]/g, '')              // bare ESC sequences
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // control chars
+}
+
+/**
+ * Accumulates raw text fragments and emits filtered complete lines.
+ * Call push() with each incoming chunk; it returns an array of clean
+ * lines ready to display (may be empty if no complete line yet).
+ */
+export class LineBuffer {
+    private _buf = '';
+
+    push(chunk: string): string[] {
+        // Strip ANSI/control chars from incoming chunk first
+        this._buf += cleanAnsi(chunk);
+
+        const parts = this._buf.split('\n');
+        // Last element is the incomplete line — keep it in the buffer
+        this._buf = parts.pop() ?? '';
+
+        const results: string[] = [];
+        for (const part of parts) {
+            const line = part.replace(/\r$/, ''); // strip trailing \r
+            if (!shouldDropLine(line)) {
+                const cleaned = stripReplPrefixes(line);
+                if (cleaned.trim().length > 0) results.push(cleaned);
+            }
+        }
+        return results;
+    }
+
+    /** Flush any remaining partial line (e.g. on disconnect). */
+    flush(): string[] {
+        if (!this._buf.trim()) { this._buf = ''; return []; }
+        const line = cleanAnsi(this._buf).replace(/\r$/, '');
+        this._buf = '';
+        if (shouldDropLine(line)) return [];
+        const cleaned = stripReplPrefixes(line);
+        return cleaned.trim().length > 0 ? [cleaned] : [];
+    }
+}
+
+/**
+ * @deprecated Use LineBuffer instead. Kept for backward-compat with deviceStore.
  */
 export function cleanDeviceOutput(raw: string): string {
-    return raw
-        .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')   // ANSI CSI sequences
-        .replace(/\x1B[A-Za-z]/g, '')              // ANSI 2-char sequences
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // bare control chars (keep \r \n \t)
+    const lb = new LineBuffer();
+    const lines = lb.push(raw + '\n');
+    return lines.join('\n');
 }
 
 export class WebSerialService implements SerialBridge {
@@ -104,54 +196,46 @@ export class WebSerialService implements SerialBridge {
      * This is the technique used by Thonny IDE and mpremote for boards
      * where main.py blocks the REPL.
      */
+
     async uploadScript(code: string): Promise<void> {
         const enc = new TextEncoder();
 
-        console.log('[WebSerial] === Starting upload ===');
+        console.log('[WebSerial] === Starting upload (Raw REPL test) ===');
 
-        // ── Step 1: Interrupt any running script (NO CTRL+D — that can trigger
-        // ISP bootloader on some firmware versions) ──────────────────────────
-        console.log('[WebSerial] Step 1: interrupt with CTRL+C');
+        // Step 1: Interrupt any running script
         await this.write(new Uint8Array([0x03]));
-        await sleep(300);
+        await sleep(50);
         await this.write(new Uint8Array([0x03]));
-        await sleep(500);
+        await sleep(80);
 
-        // ── Step 3: Send script line by line ────────────────────────────────
-        console.log('[WebSerial] Step 3: sending script lines');
-        const lines = code.split('\n').map(l => l.trimEnd());
-        let prevEndsBlock = false;
+        // Step 2: Enter Raw REPL
+        await this.write(new Uint8Array([0x01])); // CTRL+A
+        await sleep(50);
 
-        for (const line of lines) {
-            const trimmed = line.trim();
-
-            // Skip blank lines and comments
-            if (trimmed === '' || trimmed.startsWith('#')) continue;
-
-            const isIndented = line.length > 0 && (line[0] === ' ' || line[0] === '\t');
-
-            // When we leave an indented block, send a blank line to commit it
-            if (prevEndsBlock && !isIndented) {
-                await this.write(enc.encode('\r\n'));
-                await sleep(100);
-            }
-
-            await this.write(enc.encode(line + '\r\n'));
-            await sleep(80); // give REPL time to process each line
-
-            prevEndsBlock = isIndented || trimmed.endsWith(':');
+        // Ensure script ends with newline
+        if (!code.endsWith("\n")) {
+            code += "\n";
         }
 
-        // Commit any trailing indented block
-        if (prevEndsBlock) {
-            await this.write(enc.encode('\r\n'));
-            await sleep(100);
+        // Step 3: Send full script in chunks for reliability
+        const CHUNK = 512;
+        const encoded = enc.encode(code);
+        for (let off = 0; off < encoded.length; off += CHUNK) {
+            await this.write(encoded.slice(off, off + CHUNK));
+            if (off + CHUNK < encoded.length) await sleep(20);
         }
+        await sleep(50);
 
-        // Wait to capture output
-        await sleep(2000);
-        console.log('[WebSerial] === Upload complete — check monitor for output ===');
+        // Step 4: Execute script
+        await this.write(new Uint8Array([0x04])); // CTRL+D
+        await sleep(50);
+
+        // Step 5: Exit Raw REPL back to friendly REPL
+        await this.write(new Uint8Array([0x02])); // CTRL+B
+
+        console.log('[WebSerial] === Raw REPL execution complete ===');
     }
+
 
     onData(cb: SerialDataCallback): void {
         this.callbacks.add(cb);
@@ -163,10 +247,12 @@ export class WebSerialService implements SerialBridge {
 
     /**
      * Persistent read loop — runs in background for the lifetime of the connection.
+     * Uses a LineBuffer so filtering happens on complete lines, not raw fragments.
      */
     private async _readLoop(): Promise<void> {
         console.log('[WebSerial] _readLoop started');
         const decoder = new TextDecoder();
+        const lineBuf = new LineBuffer();
 
         while (this._reading && this.port?.readable) {
             const reader = this.port.readable.getReader();
@@ -179,14 +265,12 @@ export class WebSerialService implements SerialBridge {
                         break;
                     }
                     if (value && value.length > 0) {
-                        const hex = Array.from(value)
-                            .map(b => b.toString(16).padStart(2, '0'))
-                            .join(' ');
-                        console.log(`[WebSerial] RX (${value.length}B): ${hex}`);
-
                         const text = decoder.decode(value, { stream: true });
-                        if (text.length > 0) {
-                            const encoded = new TextEncoder().encode(text);
+                        const lines = lineBuf.push(text);
+
+                        if (lines.length > 0) {
+                            const out = lines.join('\n') + '\n';
+                            const encoded = new TextEncoder().encode(out);
                             this.callbacks.forEach(cb => cb(encoded));
                         }
                     }
