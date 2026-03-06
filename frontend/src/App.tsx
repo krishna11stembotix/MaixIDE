@@ -6,6 +6,8 @@ import { Editor } from './components/Editor/Editor';
 import { SerialMonitor } from './components/SerialMonitor/SerialMonitor';
 import { FirmwarePanel } from './components/FirmwarePanel/FirmwarePanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
+import { FrameBuffer } from './components/FrameBuffer/FrameBuffer';
+import { Histogram } from './components/Histogram/Histogram';
 import { useEditorStore } from './store/editorStore';
 import { useUIStore } from './store/uiStore';
 import styles from './App.module.css';
@@ -18,6 +20,7 @@ export default function App() {
     const [bottomTab, setBottomTab] = useState<BottomTab>('serial');
     const { files, activeFileId, setActive, closeFile, newFile } = useEditorStore();
     const { bottomPanelHeight, setBottomPanelHeight } = useUIStore();
+    const [rightPanelWidth, setRightPanelWidth] = useState(280);
 
     // Drag resizer for bottom panel
     const onResizerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -36,6 +39,24 @@ export default function App() {
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
     }, [bottomPanelHeight, setBottomPanelHeight]);
+
+    // Drag resizer for right panel
+    const onRightResizerMouseDown = useCallback((e: React.MouseEvent) => {
+        const startX = e.clientX;
+        const startW = rightPanelWidth;
+        e.preventDefault();
+
+        const onMove = (ev: MouseEvent) => {
+            const newW = Math.min(520, Math.max(160, startW - (ev.clientX - startX)));
+            setRightPanelWidth(newW);
+        };
+        const onUp = () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    }, [rightPanelWidth]);
 
     const handleNewPy = () => newFile('main.py', 'python');
     const handleNewCpp = () => newFile('main.cpp', 'cpp');
@@ -118,6 +139,13 @@ export default function App() {
                             {bottomTab === 'firmware' && <FirmwarePanel />}
                         </div>
                     </div>
+                </div>
+
+                {/* ── Right Panel (Camera + Histogram) ── */}
+                <div className="resizer resizer--vertical" onMouseDown={onRightResizerMouseDown} />
+                <div className={styles.rightPanel} style={{ width: rightPanelWidth }}>
+                    <FrameBuffer />
+                    <Histogram />
                 </div>
             </div>
 

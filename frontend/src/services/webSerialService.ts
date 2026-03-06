@@ -8,6 +8,8 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 function shouldDropLine(line: string): boolean {
     const t = line.trim();
     if (t === '') return true;
+    // Structured camera/histogram data — never drop
+    if (t.startsWith('##')) return false;
     if (t === 'OK') return true;
     if (t === '>') return true;
     if (/^>>>\s*$/.test(t)) return true;
