@@ -9,3 +9,5 @@ frontend/dist/
 desktop/dist/
 desktop/out/
 backend/dist/
+test/
+Demo/

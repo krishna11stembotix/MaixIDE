@@ -22,42 +22,50 @@ export class SerialHandler {
                 dataBits: 8,
                 stopBits: 1,
                 parity: 'none',
-                autoOpen: false
+                rtscts: false,
+                xon: false,
+                xoff: false,
+                xany: false,
+                // ✅ let us wire listeners before the port starts receiving
+                autoOpen: false,
             });
 
-            this.port.open(async err => {
+            this.port.on('data', (buf: Buffer) => {
+                console.log('[MAIN-RX] RAW BYTES:', buf.length, buf.toString('hex'));
+                console.log('[MAIN-RX] AS TEXT:', JSON.stringify(buf.toString('utf8').slice(0, 120)));
+                this.callbacks.forEach(cb => cb(buf));
+            });
+
+            this.port.on('error', err => {
+                console.error('[SERIAL ERROR]', err);
+                reject(err);
+            });
+
+            this.port.open((err) => {
                 if (err) return reject(err);
+                console.log('[SERIAL] Port opened:', portPath);
 
-                try {
-                    // CRITICAL for K210 boards
-                    await new Promise<void>((res, rej) =>
-                        this.port!.set({ dtr: false, rts: false }, e => e ? rej(e) : res())
-                    );
+                // ✅ Set DTR+RTS high — required by CH340 to enable data flow back to host
+                this.port!.set({ dtr: true, rts: true }, (setErr) => {
+                    if (setErr) console.warn('[SERIAL] set() error:', setErr);
+                    else console.log('[SERIAL] DTR+RTS set high');
 
-                    await new Promise(r => setTimeout(r, 100));
-
-                    await new Promise<void>((res, rej) =>
-                        this.port!.set({ dtr: true, rts: false }, e => e ? rej(e) : res())
-                    );
-
-                    await new Promise(r => setTimeout(r, 2000));
-                } catch (e) {
-                    console.warn("Signal control failed:", e);
-                }
-
-                this.port!.on('data', (data: Buffer) => {
-                    this.callbacks.forEach(cb => cb(data));
+                    setTimeout(() => {
+                        this.port!.write(Buffer.from([0x03]));
+                        console.log('[SERIAL] Board ready');
+                        resolve();
+                    }, 200);
                 });
-
-                resolve();
             });
         });
     }
-
     async disconnect(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (!this.port?.isOpen) { resolve(); return; }
-            this.port.close(err => { if (err) reject(err); else resolve(); });
+            this.port.close(err => {
+                if (err) reject(err);
+                else resolve();
+            });
             this.port = null;
         });
     }
@@ -79,5 +87,10 @@ export class SerialHandler {
 
     onData(cb: DataCallback): void {
         this.callbacks.push(cb);
+    }
+
+    // ✅ ADD: cleanup method so IPC layer can unsubscribe on disconnect
+    offData(cb: DataCallback): void {
+        this.callbacks = this.callbacks.filter(c => c !== cb);
     }
 }

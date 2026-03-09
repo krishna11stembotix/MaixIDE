@@ -5,6 +5,8 @@ import { FlashHandler } from './flashHandler';
 import { BuildHandler } from './buildHandler';
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// ✅ Single instance — remove the duplicate `handler`
 const serialHandler = new SerialHandler();
 const flashHandler = new FlashHandler();
 const buildHandler = new BuildHandler();
@@ -26,7 +28,6 @@ function createWindow(): void {
         show: false,
     });
 
-    // Load frontend
     if (isDev) {
         win.loadURL('http://localhost:5173');
         win.webContents.openDevTools();
@@ -36,13 +37,16 @@ function createWindow(): void {
 
     win.once('ready-to-show', () => win.show());
 
-    // Wire serial data → renderer
+    // ✅ Register once here — serialHandler.ts will call this cb on every
+    //    data chunk after the port is open, regardless of when connect() fires.
     serialHandler.onData(data => {
+        console.log('[MAIN-TX] Sending to renderer, bytes:', data.length);
+        if (win.isDestroyed()) return;
         win.webContents.send('serial:data', Array.from(data));
     });
 
-    // Wire build output → renderer
     buildHandler.onOutput(line => {
+        if (win.isDestroyed()) return;
         win.webContents.send('build:output', line);
     });
 }
@@ -50,12 +54,16 @@ function createWindow(): void {
 // ─── IPC handlers ─────────────────────────────────────────────────────────────
 
 ipcMain.handle('serial:list', () => serialHandler.listPorts());
-ipcMain.handle('serial:connect', (_, port: string, baud: number) => serialHandler.connect(port, baud));
+
+// ✅ Just connect — no second onData registration here
+ipcMain.handle('serial:connect', async (_, port: string, baud: number) => {
+    await serialHandler.connect(port, baud);
+});
+
 ipcMain.handle('serial:disconnect', () => serialHandler.disconnect());
 ipcMain.handle('serial:write', (_, data: number[]) => serialHandler.write(Buffer.from(data)));
 
 ipcMain.handle('flash:start', (_, firmwareUrl: string, port: string) => flashHandler.start(firmwareUrl, port));
-
 ipcMain.handle('build:run', (_, projectPath: string) => buildHandler.run(projectPath));
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
