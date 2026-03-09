@@ -66,38 +66,48 @@ export const useCameraStore = create<CameraState>((set) => ({
  * or simply comma-separated bin values (legacy/simple format).
  */
 export function parseHistLine(raw: string): HistogramData {
-    // Try the rich format first
     if (raw.includes('|')) {
-        const parts: Record<string, string> = {};
-        for (const seg of raw.split('|')) {
+        // Rich format from board: "v0,v1,...|mean=n|median=n|mode=n|stdev=n|min=n|max=n|lq=n|uq=n"
+        // The FIRST segment (before any '|') is the raw bin CSV — it has no '=' key.
+        const segments = raw.split('|');
+        const kv: Record<string, string> = {};
+        let binSeg = '';
+        for (const seg of segments) {
             const idx = seg.indexOf('=');
-            if (idx >= 0) parts[seg.slice(0, idx)] = seg.slice(idx + 1);
+            if (idx >= 0) {
+                kv[seg.slice(0, idx)] = seg.slice(idx + 1);
+            } else if (seg.trim().length > 0) {
+                // First plain segment = bins CSV
+                binSeg = seg;
+            }
         }
-        const bins = (parts['bins'] ?? '').split(',').map(Number).filter(n => !isNaN(n));
+        // bins may also come as kv['bins'] if the board uses that key
+        const binStr = kv['bins'] ?? binSeg;
+        const bins = binStr.split(',').map(Number).filter(n => !isNaN(n));
         return {
             bins,
-            mean: parseFloat(parts['mean'] ?? '0'),
-            median: parseFloat(parts['median'] ?? '0'),
-            mode: parseFloat(parts['mode'] ?? '0'),
-            stdev: parseFloat(parts['stdev'] ?? '0'),
-            min: parseFloat(parts['min'] ?? '0'),
-            max: parseFloat(parts['max'] ?? '0'),
-            lq: parseFloat(parts['lq'] ?? '0'),
-            uq: parseFloat(parts['uq'] ?? '0'),
+            mean: parseFloat(kv['mean'] ?? '0'),
+            median: parseFloat(kv['median'] ?? '0'),
+            mode: parseFloat(kv['mode'] ?? '0'),
+            stdev: parseFloat(kv['stdev'] ?? '0'),
+            min: parseFloat(kv['min'] ?? '0'),
+            max: parseFloat(kv['max'] ?? '0'),
+            lq: parseFloat(kv['lq'] ?? '0'),
+            uq: parseFloat(kv['uq'] ?? '0'),
         };
     }
 
-    // Simple: just a list of bin values
+    // Simple format: just comma-separated bin counts
     const bins = raw.split(',').map(Number).filter(n => !isNaN(n));
     const sorted = [...bins].sort((a, b) => a - b);
-    const sum = bins.reduce((a, b) => a + b, 0);
-    const mean = sum / (bins.length || 1);
-    const variance = bins.reduce((a, b) => a + (b - mean) ** 2, 0) / (bins.length || 1);
+    const total = bins.reduce((a, b) => a + b, 0);
+    const mean = total / (bins.length || 1);
+    const variance = bins.reduce((s, b) => s + (b - mean) ** 2, 0) / (bins.length || 1);
     return {
         bins,
         mean,
         median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-        mode: sorted[0] ?? 0,
+        mode: sorted[sorted.length - 1] ?? 0,
         stdev: Math.sqrt(variance),
         min: sorted[0] ?? 0,
         max: sorted[sorted.length - 1] ?? 0,

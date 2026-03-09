@@ -169,12 +169,38 @@ export class WebSerialService implements SerialBridge {
         await this.write(new Uint8Array([0x01])); // CTRL+A
         await sleep(120);
 
-        // Ensure script ends with newline
-        if (!code.endsWith("\n")) {
-            code += "\n";
-        }
+        // ── Inject MaixIDE camera streaming ───────────────────────────────────
+        // Strategy: text substitution — no sys.modules patching needed.
+        //   1. Prepend a helper function __sd(img, ...) that:
+        //      a. calls the real lcd.display() first (original image, zero latency)
+        //      b. computes RGB histogram from original pixels (every 4th frame)
+        //      c. compresses in-place and sends ##FRAME:
+        //   2. Replace every occurrence of "lcd.display(" in the user's code with "__sd("
+        // This is guaranteed to work in MicroPython — plain function calls, no magic.
+        const PREAMBLE = `import lcd as __rl,ubinascii as __ui
+__sn=0
+def __sd(img,*a,**k):
+ global __sn;__rl.display(img,*a,**k);__sn+=1
+ try:
+  if __sn%4==0:
+   __r=[0]*32;__g=[0]*32;__b=[0]*32
+   for __y in range(0,img.height(),10):
+    for __x in range(0,img.width(),10):
+     __p=img.get_pixel(__x,__y);__r[__p[0]>>3]+=1;__g[__p[1]>>3]+=1;__b[__p[2]>>3]+=1
+   print('##HIST_R:'+','.join(str(__v)for __v in __r))
+   print('##HIST_G:'+','.join(str(__v)for __v in __g))
+   print('##HIST_B:'+','.join(str(__v)for __v in __b))
+  img.compress(quality=35);print('##FRAME:'+__ui.b2a_base64(img).decode().strip())
+ except:pass
+`;
 
-        const encoded = enc.encode(code);
+        // Replace lcd.display( → __sd( in user code (handles spaces like "lcd.display (")
+        const injectedCode = code.replace(/lcd\s*\.\s*display\s*\(/g, '__sd(');
+
+        let fullCode = PREAMBLE + injectedCode;
+        if (!fullCode.endsWith('\n')) fullCode += '\n';
+
+        const encoded = enc.encode(fullCode);
 
         // Send script
         await this.write(encoded);
@@ -190,6 +216,7 @@ export class WebSerialService implements SerialBridge {
 
         console.log('[WebSerial] === Raw REPL execution complete ===');
     }
+
     onData(cb: SerialDataCallback): void {
         this.callbacks.add(cb);
     }

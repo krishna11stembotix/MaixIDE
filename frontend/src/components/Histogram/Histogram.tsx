@@ -33,7 +33,8 @@ function HistChannel({
         return parts.join(' ');
     }, [data]);
 
-    const fmt = (n: number) => (isNaN(n) ? '—' : n.toFixed(1));
+    const fmt = (n: number) => (isNaN(n) ? '—' : Math.round(n).toString());
+    const fmtF = (n: number) => (isNaN(n) ? '—' : n.toFixed(1));
 
     return (
         <div className={styles.channel}>
@@ -52,9 +53,9 @@ function HistChannel({
                     {(
                         [
                             ['Mean', fmt(data.mean)],
-                            ['Med', fmt(data.median)],
+                            ['Median', fmt(data.median)],
                             ['Mode', fmt(data.mode)],
-                            ['σ', fmt(data.stdev)],
+                            ['StDev', fmtF(data.stdev)],
                             ['Min', fmt(data.min)],
                             ['Max', fmt(data.max)],
                             ['LQ', fmt(data.lq)],
@@ -81,7 +82,7 @@ export function Histogram() {
         <div className={styles.panel}>
             <div className={styles.toolbar}>
                 <span className={styles.title}>📊 Histogram</span>
-                <span className={styles.label}>RGB</span>
+                <span className={styles.label}>RGB Color Space</span>
             </div>
 
             <div className={styles.body}>
