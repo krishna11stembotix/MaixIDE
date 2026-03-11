@@ -22,7 +22,7 @@ export function Toolbar({ onNewPyFile, onNewCFile }: ToolbarProps) {
     const handleRun = useCallback(async () => {
         if (!activeFile || !serialBridge) return;
         setRunning(true);
-        appendSerial(`▶ Running ${activeFile.name}…`, 'system');
+        appendSerial(`Running ${activeFile.name}…`, 'system');
         try {
             if (serialBridge.uploadScript) {
                 // Smart chunked upload with proper delays (WebSerial)
@@ -42,7 +42,7 @@ export function Toolbar({ onNewPyFile, onNewCFile }: ToolbarProps) {
     const handleStop = useCallback(async () => {
         if (!serialBridge) return;
         await serialBridge.write(REPL_INTERRUPT);
-        appendSerial('■ Script interrupted.', 'system');
+        appendSerial('Script interrupted.', 'system');
     }, [serialBridge, appendSerial]);
 
     return (
@@ -57,8 +57,8 @@ export function Toolbar({ onNewPyFile, onNewCFile }: ToolbarProps) {
 
             <div className={styles.toolbarDivider} />
 
-            <button className="btn btn--ghost" onClick={onNewPyFile} data-tooltip="New Python file">🐍 New .py</button>
-            <button className="btn btn--ghost" onClick={onNewCFile} data-tooltip="New C/C++ file">⚙️ New .cpp</button>
+            <button className="btn btn--ghost" onClick={onNewPyFile} data-tooltip="New Python file">New .py</button>
+            <button className="btn btn--ghost" onClick={onNewCFile} data-tooltip="New C/C++ file">New .cpp</button>
 
             <div className={styles.toolbarDivider} />
 
@@ -67,14 +67,14 @@ export function Toolbar({ onNewPyFile, onNewCFile }: ToolbarProps) {
                 onClick={handleRun}
                 disabled={!isConnected || !activeFile || running}
                 data-tooltip="Run script on device"
-            >▶ Run</button>
+            >Run</button>
 
             <button
                 className={`btn ${styles.toolbarBtnStop}`}
                 onClick={handleStop}
                 disabled={!isConnected}
                 data-tooltip="Interrupt running script"
-            >■ Stop</button>
+            >Stop</button>
 
             <div className={styles.toolbarSpacer} />
 
@@ -91,8 +91,8 @@ export function Toolbar({ onNewPyFile, onNewCFile }: ToolbarProps) {
                 onClick={isConnected ? disconnect : connect}
                 disabled={isConnecting}
             >
-                {isConnecting ? <span className="animate-pulse">⏳ Connecting…</span>
-                    : isConnected ? '⏏ Disconnect' : '🔌 Connect'}
+                {isConnecting ? <span className="animate-pulse">Connecting…</span>
+                    : isConnected ? 'Disconnect' : 'Connect'}
             </button>
         </div>
     );

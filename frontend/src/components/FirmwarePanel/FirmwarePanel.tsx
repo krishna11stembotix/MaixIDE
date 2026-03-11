@@ -38,7 +38,7 @@ export function FirmwarePanel() {
         <div className={styles.firmware}>
             {!desktop && (
                 <div className={styles.firmwareNotice}>
-                    ⚠️ Firmware flashing requires the Desktop app. The browser cannot flash directly.
+                    Note: Firmware flashing requires the Desktop app. The browser cannot flash directly.
                 </div>
             )}
 
@@ -62,17 +62,17 @@ export function FirmwarePanel() {
                                             <div className={styles.firmwareProgressBar}>
                                                 <div className={styles.firmwareProgressFill} style={{ width: `${prog}%` }} />
                                             </div>
-                                            <div className={styles.firmwareProgressText}>{done ? '✅ Done' : `${prog}%`}</div>
+                                            <div className={styles.firmwareProgressText}>{done ? 'Done' : `${prog}%`}</div>
                                         </div>
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                                     <a className="btn btn--ghost" href={r.html_url} target="_blank" rel="noreferrer"
-                                        style={{ fontSize: 11, textDecoration: 'none' }}>↗ View</a>
+                                        style={{ fontSize: 11, textDecoration: 'none' }}>View</a>
                                     {desktop && (
                                         <button className="btn btn--primary" style={{ fontSize: 11 }}
                                             disabled={flashing || done} onClick={() => handleFlash(r.tag_name)}>
-                                            {flashing ? `${prog}%` : done ? '✓' : '⚡ Flash'}
+                                            {flashing ? `${prog}%` : done ? '✓' : 'Flash'}
                                         </button>
                                     )}
                                 </div>

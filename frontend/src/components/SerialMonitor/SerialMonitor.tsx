@@ -32,13 +32,13 @@ export function SerialMonitor() {
             <div className={styles.monitorToolbar}>
                 <div className={styles.monitorToolbarLeft}>
                     <span className={styles.monitorTitle}>Serial Monitor</span>
-                    {status === 'connected' && <span className="badge badge--connected">● Live</span>}
+                    {status === 'connected' && <span className="badge badge--connected">Live</span>}
                 </div>
                 <div className={styles.monitorToolbarRight}>
                     <button className="btn btn--ghost" onClick={() => setPaused(!paused)} style={{ fontSize: 11 }}>
-                        {paused ? '▶ Resume' : '⏸ Pause'}
+                        {paused ? 'Resume' : 'Pause'}
                     </button>
-                    <button className="btn btn--ghost" onClick={clear} style={{ fontSize: 11 }}>🗑 Clear</button>
+                    <button className="btn btn--ghost" onClick={clear} style={{ fontSize: 11 }}>Clear</button>
                 </div>
             </div>
 

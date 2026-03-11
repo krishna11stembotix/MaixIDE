@@ -45,7 +45,7 @@ export function DeviceManager() {
         <div className={styles.deviceManager}>
             {!hasWebSerial() && !isElectron() && (
                 <div className={styles.deviceManagerHint}>
-                    ⚠️ WebSerial not available. Use Chrome / Edge 89+ or the Desktop app.
+                    Note: WebSerial not available. Use Chrome / Edge 89+ or the Desktop app.
                 </div>
             )}
 
@@ -56,11 +56,11 @@ export function DeviceManager() {
                         <option value="">— select —</option>
                         {ports.map(p => <option key={p.path} value={p.path}>{p.path}</option>)}
                     </select>
-                    <button className="btn btn--ghost" onClick={refreshPorts} data-tooltip="Refresh ports">↻</button>
+                    <button className="btn btn--ghost" onClick={refreshPorts} data-tooltip="Refresh ports">Refresh</button>
                 </div>
             ) : (
                 <div className={styles.deviceManagerHint}>
-                    🖥 Port selected via OS dialog on Connect.
+                    Port selected via OS dialog on Connect.
                 </div>
             )}
 
@@ -96,7 +96,7 @@ export function DeviceManager() {
                 disabled={status === 'connecting' || (!isConnected && !canConnect)}
                 title={!canConnect ? 'Select a port first' : ''}
             >
-                {status === 'connecting' ? 'Connecting…' : isConnected ? '⏏ Disconnect' : '🔌 Connect Device'}
+                {status === 'connecting' ? 'Connecting…' : isConnected ? 'Disconnect' : 'Connect Device'}
             </button>
         </div>
     );

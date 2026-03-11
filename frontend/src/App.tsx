@@ -76,7 +76,7 @@ export default function App() {
                                 className={`${styles.sidebarNavItem} ${sidebarTab === tab ? styles.sidebarNavItemActive : ''}`}
                                 onClick={() => setSidebarTab(tab)}
                             >
-                                {tab === 'files' ? '📁 Files' : '🔌 Device'}
+                                {tab === 'files' ? 'Files' : 'Device'}
                             </div>
                         ))}
                     </div>
@@ -130,7 +130,7 @@ export default function App() {
                                     className={`${styles.bottomPanelTab} ${bottomTab === tab ? styles.bottomPanelTabActive : ''}`}
                                     onClick={() => setBottomTab(tab)}
                                 >
-                                    {tab === 'serial' ? '📟 Serial Monitor' : '⚡ Firmware'}
+                                    {tab === 'serial' ? 'Serial Monitor' : 'Firmware'}
                                 </div>
                             ))}
                         </div>
